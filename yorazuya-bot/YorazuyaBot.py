@@ -8,57 +8,76 @@ import pprint
 
 from RSSReader import RSSReader
 from Config import Config
-# from lxml import etree
-from DiscordMessage import DiscordMessage
+from Logger import Logger
 
-messageLog = None
-botClosing = False
-hbLog = None
-hbid = 0
+import Discord
+# import Config
 class YorazuyaBot:
 
     """Main Bot Program"""
     # self.loop = None
 
     CHANNEL_ID = 147031379438338048
-    NEWS_CHANNEL_ID = 156859545916801024
-    URL = 'https://discordapp.com/api'
+    NEWS_CHANNEL_ID = 156859545916801024-
     RSS_LINK = 'http://euw.leagueoflegends.com/en/rss.xml'
     GUILD_ID = 147031379438338048
     DEV_ROLE = '352546718782586881'
-
+    LOG = None
+    # config = None
     def __init__(self):
-        self.loop = asyncio.get_event_loop()
 
-        #get bot token from config file
-        config = Config('config.ini')
-        self.token = config.token
+
+        setUpAsyncioLoop()
+        setUpConfig()
+        setUpLogger()
+        setUpApi()
+
+
+        
+
+        # self.config = Config('Config/config.ini')
+        # self.token = config.token
+
+
         # self.malToken = config.malToken
-        self.last_sequence = None
+        # self.last_sequence = None
+        # self.news = config.newsChannelID
 
         #get gateway from cache here
         #TODO
-        self.ws = None
+        self.webSocket = None
         self.heartbeatCourotine = None
         self.heartbeatAcked = True
         self.running = True
         self.resuming = False
-        self.fresh = False
         self.session_id = None
 
-    async def api_call(self,path, method="GET", **kwargs):
-        """Return the JSON body of a call to Discord REST API."""
-        defaults = {
-            "headers": {
-                "Authorization": f"Bot {self.token}",
-                "User-Agent": "dBot Patel347"
-            }
-        }
-        kwargs = dict(defaults, **kwargs)
-        async with aiohttp.ClientSession() as session:
-            async with session.request(method, f"{self.URL}{path}",**kwargs) as response:
-                assert 200 == response.status, response.reason
-                return await response.json()
+    def setUpAsyncioLoop():
+        self.loop = asyncio.get_event_loop()
+
+    def setUpConfig():
+        self.config = Config('Config/config.ini')
+
+    def setUpLogger():
+        LOG = Logger('Logger/Logger.txt')
+
+    def setUpApi():
+        Api.token = self.config.getBotToken()
+
+
+    # async def api_call(self,path, method="GET", **kwargs):
+    #     """Return the JSON body of a call to Discord REST API."""
+    #     defaults = {
+    #         "headers": {
+    #             "Authorization": f"Bot {self.token}",
+    #             "User-Agent": "dBot Patel347"
+    #         }
+    #     }
+    #     kwargs = dict(defaults, **kwargs)
+    #     async with aiohttp.ClientSession() as session:
+    #         async with session.request(method, f"{self.URL}{path}",**kwargs) as response:
+    #             assert 200 == response.status, response.reason
+    #             return await response.json()
 
     async def heartbeat(self, interval,ida):
         selfid = ida
@@ -67,8 +86,6 @@ class YorazuyaBot:
             # await asyncio.sleep(1)  # seconds
             await asyncio.sleep(interval / 1000)  # seconds
             if self.heartbeatAcked == False:
-                print("hb not acked since last sleep")
-                messageLog.write("heartbeat was not acked, will attempt to reconnect \n")
                 self.loop.stop()
                 return -1
             await self.ws.send_json({
@@ -94,7 +111,7 @@ class YorazuyaBot:
             print('checked for league news')
             if newItems != None:
                 for item in newItems:
-                     await self.send_message(item.title + ' ' + item.link,self.NEWS_CHANNEL_ID)
+                     await self.send_message(item.title + ' ' + item.link,self.news)
                      await asyncio.sleep(1)  # seconds
             await asyncio.sleep(60 * 60)
 
@@ -120,32 +137,7 @@ class YorazuyaBot:
                }
             }
         )
-        print('sent handshake')
-
-    # async def searchMal(self,searchTerm,channelID):
-    #     defaults = {
-    #         "headers": {
-    #             "Authorization": f"Basic {self.malToken}",
-    #             "User-Agent": "dBot Patel347"
-    #         }
-    #     }
-    #     headers ={"Authorization": f"Basic {self.malToken}","Accept":'text/xml, text/*'}
-    #     async with aiohttp.ClientSession() as session:
-    #         searchTerm = urllib.parse.quote_plus(searchTerm)
-    #         async with session.get('https://myanimelist.net/api/anime/search.xml?q='+searchTerm,headers=headers ) as response:
-    #             assert 200 == response.status, response.reason
-    #             root = etree.fromstring(await response.read())
-    #             # print(etree.tostring(root, pretty_print=True))
-    #             # logging.debug(etree.tostring(root))
-    #             animeId = root[0][0].text
-    #             message = 'Link: <https://myanimelist.net/anime/'+animeId+'>'
-    #             message += '\nTitle: '+ root[0][2].text
-    #             message += '\nMAL Score: '+ root[0][5].text
-    #             message += '\nImage: '+ root[0][11].text
-    #             asyncio.ensure_future(self.send_message(message,channelID))
-
-
-    
+        print('sent handshake')    
 
     async def parseCommand(self,message,channelID):
 
@@ -214,13 +206,13 @@ class YorazuyaBot:
         messageLog.write("\n")
 
         user = messageData['author']['username']
-        messageObj = DiscordMessage(messageData)
+        messageObj = Discord.Message(messageData)
         message = messageObj.content
         guildMember = await self.getGuildMember(messageData['author']['id'])
         # print (guildMember['roles'])
 
         channelID = messageData['channel_id']
-        if message.startswith('!'):
+        if message.startswith('$'):
             if self.DEV_ROLE not in guildMember['roles']:
                 task = asyncio.ensure_future(self.send_message('You dont have permission to do this',channelID))
                 return
@@ -234,51 +226,55 @@ class YorazuyaBot:
             return await self.messageCreatedEvent(data['d'])
                         
 
-    async def run(self):
-        #temp get gateway address
-        # if isResuming:
-        #     await asyncio.sleep(5)
-        global hbid
-        response = await self.api_call("/gateway") 
-        self.gateway = response['url']
+    # async def getGateway(self):
+    #     response = await self.api_call("/gateway") 
+    #     self.gateway = response['url']
 
-        async with aiohttp.ClientSession() as session:
-            async with session.ws_connect(f"{self.gateway}?v=6&encoding=json") as ws:
-                self.ws = ws
-                async for msg in ws:
-                    data = json.loads(msg.data)
+    async def handleWebSocket():
+        async for message in webSocket:
+            messageData = json.loads(message.data)
+
+            if self.resuming:
+                self.handleResuming()
+                self.heartbeatCourotine = asyncio.ensure_future(self.heartbeat(data['d']['heartbeat_interval'],hbid))
+                asyncio.ensure_future(self.getLeagueNews())
+                self.resuming = False
+            elif
+
+
+
+    async def run(self):
+        
+        gateway = Gateway()
+        token = self.config.getBotToken()
+        await gateway.connect(token):
+
+        self.handleWebSocket():
+
+        # async with aiohttp.ClientSession() as session:
+        #     async with session.ws_connect(f"{self.gateway}?v=6&encoding=json") as ws:
+                # self.ws = ws
+                # async for msg in ws:
+                    # data = json.loads(msg.data)
                     
                     
-                    print(data["op"])
-                    if self.resuming:
-                        print("trying to resume")
-                        messageLog.write("attempting a resume\n")
-                        print("sessionid " + self.session_id)
-                        await self.ws.send_json(
-                            {
-                               "op": 6,  # resume
-                               "d": {
-                                   "token": self.token,
-                                   "session_id": self.session_id,
-                                   "seq":self.last_sequence
-                               }
-                            }
-                        )
+                    # print(data["op"])
+                    # if self.resuming:
+                        # self.handleResuming()
                         
-                        self.heartbeatCourotine = asyncio.ensure_future(self.heartbeat(data['d']['heartbeat_interval'],hbid))
-                        hbid +=1
-                        asyncio.ensure_future(self.getLeagueNews()) # start scheduling rgular news retrievals
+                        # self.heartbeatCourotine = asyncio.ensure_future(self.heartbeat(data['d']['heartbeat_interval'],hbid))
+                        # hbid +=1
+                        # asyncio.ensure_future(self.getLeagueNews())
                         # print("")
                         self.resuming = False
                     elif data["op"] == 10:  # Hello#
                         self.heartbeatCourotine = asyncio.ensure_future(self.heartbeat(data['d']['heartbeat_interval'],hbid))
                         hbid +=1
-                        asyncio.ensure_future(self.getLeagueNews()) # start scheduling rgular news retrievals
+                        asyncio.ensure_future(self.getLeagueNews())
                         await self.handshake()
                     elif data["op"] == 9:
                             print("error code 9")
                             messageLog.write("session could not be resumed attempting fresh connection")
-                            self.fresh = True
                             await asyncio.sleep(5)
                             self.loop.stop()
                             break
@@ -292,9 +288,7 @@ class YorazuyaBot:
                         if data['t'] == 'READY':
                             self.session_id = data['d']['session_id']
                             print(self.session_id)
-                        # print(data)
                         self.last_sequence = data['s'] #Update sequence for HB
-                        # pass #temp thing to stop bot responding and crashing to responses
                         if(await self.parseEvent(data) == -1):
                             print("bot was closed by command")
                             self.running = False
@@ -307,42 +301,37 @@ class YorazuyaBot:
                         print("op code was: " + str(data["op"]))
                         messageLog.write("something unexpected happened")
 
+    def startBot(self):
+        #maybe put intialization here
 
-    def start(self):
+        asyncio.ensure_future(self.run())
+        self.loop.run_forever()
+
+    def stopBot(self):
+        #should be some clean up here
+        LOG.write("the bot is closing properly at time: ")
+        LOG.writeLine(str(datetime.now()))
+
+    def runLoop(self):
         while self.running:
-            asyncio.ensure_future(self.run())
-            # self.resuming = False
-            try:
-                self.loop.run_forever()
-            finally:
-                self.loop.run_until_complete(self.loop.shutdown_asyncgens())
+            self.startBot()
             if self.running == False:
-                print("proper closedown")
-                messageLog.write("the bot is closing properly at time:")
-                messageLog.write(str(datetime.now()))
-            elif self.fresh:
-                print("bot ending without ending and not resuming")
-                print("attempting fresh connection")
-                self.fresh = False
-                self.heartbeatAcked = True
-            else:
-                print("bot ended without ending")
-                messageLog.write("bot has ended without ending properly\n")
-                messageLog.write("attempting to now resume at ")
-                messageLog.write(str(datetime.now()) + "\n")
+                self.stopBot()
+            elif self.resuming:
+                LOG.writeLine("bot has ended without ending properly")
+                LOG.write("attempting to now resume at ")
+                LOG.writeLine(str(datetime.now()))
                 self.resuming = True
                 self.heartbeatAcked = True
-            
+            else:
+                self.heartbeatAcked = True
         self.loop.close()
 
 
 def main():
     print('Starting Bot')
-    global messageLog
-    messageLog = open("message.log","w")
-    messageLog.write("messaging log is starting\n")
     bot = YorazuyaBot()
-    bot.start()
+    bot.runLoop()
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,4 @@
-class DiscordUser:
+class User:
 
 	def __init__(self,userArray):
 

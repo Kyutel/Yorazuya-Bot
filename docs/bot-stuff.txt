@@ -1,0 +1,28 @@
+https://discordapp.com/api/oauth2/authorize?client_id=249270357167439873&scope=bot&permissions=0
+client id = 49270357167439873
+General Chat ID=147031379438338048
+send message code = 0x00000800
+bot token = MjQ5MjcwMzU3MTY3NDM5ODcz.CxEPDg.rca_6ll3s2RhqoeqJZQonIzhJdU
+
+var ws = new WebSocket('wss://gateway.discord.gg');
+
+mystring = JSON.stringify({
+ "op": 2,
+ "d": {
+ "token": "MjQ5MjcwMzU3MTY3NDM5ODcz.CxEPDg.rca_6ll3s2RhqoeqJZQonIzhJdU",
+ "properties": {
+ "$os": "windows",
+ "$browser": "chrome",
+ "$device": "myPC",
+ "$referrer": "",
+ "$referring_domain": "",
+ },
+ "compress": true,
+ "large_threshold": 250,
+ } 
+})
+
+ws.send(mystring)
+
+
+{"token":"MjQ5MjcwMzU3MTY3NDM5ODcz.CxEPDg.rca_6ll3s2RhqoeqJZQonIzhJdU","properties":{"$os":"windows","$browser":"my_library_name","$device":"my_library_name","$referrer":"","$referring_domain":""},"compress":true,"large_threshold":250,"shard":[1,10]}

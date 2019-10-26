@@ -14,15 +14,15 @@
 #is command
 #sent by object?
 
-from DiscordUser import DiscordUser
+from .User import User
 
-class DiscordMessage:
+class Message:
 
 
 	def __init__(self,messageArray):
 		self.content = messageArray['content']
 		#create user object
-		self.author = DiscordUser(messageArray['author'])
+		self.author = User(messageArray['author'])
 
 	def isValidCommand():
 		if message.startswith('!'):
