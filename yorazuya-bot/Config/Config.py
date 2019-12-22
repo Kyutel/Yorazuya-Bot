@@ -3,15 +3,15 @@ import configparser
 class Config:
     def __init__(self, config_file):
         # self.config_file = config_file
-        config = configparser.ConfigParser()
+        self.config = configparser.ConfigParser()
 
-        config.read(config_file)
+        # self.config = config.read(config_file)
 
-        self.token = config.get('Credentials', 'Token', fallback='')
-        self.malToken = config.get('Credentials', 'MAL_Token',fallback='')
-        self.newsChannelID  = config.get('ChannelIds', 'News_Channel',fallback='')
+        # self.token = config.get('Credentials', 'Token', fallback='')
+        # self.malToken = config.get('Credentials', 'MAL_Token',fallback='')
+        # self.newsChannelID  = config.get('ChannelIds', 'News_Channel',fallback='')
 
-        self.APITokens  = self.getAPITokens()
+        # self.APITokens  = self.getAPITokens()
 
     # def getAPITokens(self):
     	# configHeader = 'Credentials'
@@ -20,5 +20,5 @@ class Config:
     	# APITokens += config.get()
 
     def getBotToken(self):
-        return config.get('Credentials', 'Token', fallback = '')
+        return self.config.get('Credentials', 'Token', fallback = '')
         

@@ -1,4 +1,5 @@
 
 from .Message import Message
-import api
+from .api import Api
+from .gateway import Gateway
 # from .DiscordUser import User

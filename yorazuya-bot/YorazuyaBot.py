@@ -18,7 +18,7 @@ class YorazuyaBot:
     # self.loop = None
 
     CHANNEL_ID = 147031379438338048
-    NEWS_CHANNEL_ID = 156859545916801024-
+    NEWS_CHANNEL_ID = 156859545916801024
     RSS_LINK = 'http://euw.leagueoflegends.com/en/rss.xml'
     GUILD_ID = 147031379438338048
     DEV_ROLE = '352546718782586881'
@@ -27,10 +27,10 @@ class YorazuyaBot:
     def __init__(self):
 
 
-        setUpAsyncioLoop()
-        setUpConfig()
-        setUpLogger()
-        setUpApi()
+        self.setUpAsyncioLoop()
+        self.setUpConfig()
+        self.setUpLogger()
+        self.setUpApi()
 
 
         
@@ -52,17 +52,17 @@ class YorazuyaBot:
         self.resuming = False
         self.session_id = None
 
-    def setUpAsyncioLoop():
+    def setUpAsyncioLoop(self):
         self.loop = asyncio.get_event_loop()
 
-    def setUpConfig():
+    def setUpConfig(self):
         self.config = Config('Config/config.ini')
 
-    def setUpLogger():
+    def setUpLogger(self):
         LOG = Logger('Logger/Logger.txt')
 
-    def setUpApi():
-        Api.token = self.config.getBotToken()
+    def setUpApi(self):
+        Discord.Api.token = self.config.getBotToken()
 
 
     # async def api_call(self,path, method="GET", **kwargs):
@@ -79,8 +79,7 @@ class YorazuyaBot:
     #             assert 200 == response.status, response.reason
     #             return await response.json()
 
-    async def heartbeat(self, interval,ida):
-        selfid = ida
+    async def heartbeat(self, interval):
         """Send every interval ms the heatbeat message."""
         while True:
             # await asyncio.sleep(1)  # seconds
@@ -92,8 +91,6 @@ class YorazuyaBot:
                 "op": 1,  # Heartbeat
                 "d": self.last_sequence
             })
-            print("hb sent: " + str(selfid))
-            messageLog.write("hb sent")
             self.heartbeatAcked = False
             
 
@@ -230,26 +227,19 @@ class YorazuyaBot:
     #     response = await self.api_call("/gateway") 
     #     self.gateway = response['url']
 
-    async def handleWebSocket():
-        async for message in webSocket:
-            messageData = json.loads(message.data)
-
-            if self.resuming:
-                self.handleResuming()
-                self.heartbeatCourotine = asyncio.ensure_future(self.heartbeat(data['d']['heartbeat_interval'],hbid))
-                asyncio.ensure_future(self.getLeagueNews())
-                self.resuming = False
-            elif
+    # async def handleWebSocket():
+        
 
 
 
     async def run(self):
-        
-        gateway = Gateway()
         token = self.config.getBotToken()
-        await gateway.connect(token):
+        gateway = Discord.Gateway(token)
+        
+        await gateway.connect()
 
-        self.handleWebSocket():
+
+        # self.handleWebSocket():
 
         # async with aiohttp.ClientSession() as session:
         #     async with session.ws_connect(f"{self.gateway}?v=6&encoding=json") as ws:
@@ -266,40 +256,40 @@ class YorazuyaBot:
                         # hbid +=1
                         # asyncio.ensure_future(self.getLeagueNews())
                         # print("")
-                        self.resuming = False
-                    elif data["op"] == 10:  # Hello#
-                        self.heartbeatCourotine = asyncio.ensure_future(self.heartbeat(data['d']['heartbeat_interval'],hbid))
-                        hbid +=1
-                        asyncio.ensure_future(self.getLeagueNews())
-                        await self.handshake()
-                    elif data["op"] == 9:
-                            print("error code 9")
-                            messageLog.write("session could not be resumed attempting fresh connection")
-                            await asyncio.sleep(5)
-                            self.loop.stop()
-                            break
-                    elif data["op"] == 1:
-                        await self.sendSingleHB()
-                    elif data["op"] == 11:  # Heartbeat ACK
-                        self.heartbeatAcked = True
-                        print("heartbeat achnkowleged")
-                        messageLog.write("hb acked \n")
-                    elif data["op"] == 0:  # Dispatch
-                        if data['t'] == 'READY':
-                            self.session_id = data['d']['session_id']
-                            print(self.session_id)
-                        self.last_sequence = data['s'] #Update sequence for HB
-                        if(await self.parseEvent(data) == -1):
-                            print("bot was closed by command")
-                            self.running = False
-                            break
-                    elif data["op"] >= 4000:
-                        print("discord error code " + str(data["op"]))
-                        messageLog.write("discord error code: " + str(data["op"]))
-                    else:
-                        print("something unexpected")
-                        print("op code was: " + str(data["op"]))
-                        messageLog.write("something unexpected happened")
+                        # self.resuming = False
+                    # elif data["op"] == 10:  # Hello#
+                    #     self.heartbeatCourotine = asyncio.ensure_future(self.heartbeat(data['d']['heartbeat_interval'],hbid))
+                    #     hbid +=1
+                    #     asyncio.ensure_future(self.getLeagueNews())
+                    #     await self.handshake()
+                    # elif data["op"] == 9:
+                    #         print("error code 9")
+                    #         messageLog.write("session could not be resumed attempting fresh connection")
+                    #         await asyncio.sleep(5)
+                    #         self.loop.stop()
+                    #         break
+                    # elif data["op"] == 1:
+                    #     await self.sendSingleHB()
+                    # elif data["op"] == 11:  # Heartbeat ACK
+                    #     self.heartbeatAcked = True
+                    #     print("heartbeat achnkowleged")
+                    #     messageLog.write("hb acked \n")
+                    # elif data["op"] == 0:  # Dispatch
+                    #     if data['t'] == 'READY':
+                    #         self.session_id = data['d']['session_id']
+                    #         print(self.session_id)
+                    #     self.last_sequence = data['s'] #Update sequence for HB
+                    #     if(await self.parseEvent(data) == -1):
+                    #         print("bot was closed by command")
+                    #         self.running = False
+                    #         break
+                    # elif data["op"] >= 4000:
+                    #     print("discord error code " + str(data["op"]))
+                    #     messageLog.write("discord error code: " + str(data["op"]))
+                    # else:
+                    #     print("something unexpected")
+                    #     print("op code was: " + str(data["op"]))
+                    #     messageLog.write("something unexpected happened")
 
     def startBot(self):
         #maybe put intialization here
